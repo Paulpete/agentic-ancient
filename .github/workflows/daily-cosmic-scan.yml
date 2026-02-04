@@ -1,0 +1,33 @@
+name: Daily Cosmic Scan
+
+on:
+  schedule:
+    - cron: '0 0 * * *' # Runs every day at midnight
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+      - name: Run scan
+        env:
+          REOWN_PROJECT_ID: ${{ secrets.REOWN_PROJECT_ID }}
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          SOLANA_RPC: ${{ secrets.SOLANA_RPC }}
+          WORMHOLE_ENV: ${{ secrets.WORMHOLE_ENV }}
+          PRIMARY_WALLET: ${{ secrets.PRIMARY_WALLET }}
+          IMPULSE_MINT: ${{ secrets.IMPULSE_MINT }}
+          UNICHAIN_RPC: ${{ secrets.UNICHAIN_RPC }}
+          UNICHAIN_DEST_ADDRESS: ${{ secrets.UNICHAIN_DEST_ADDRESS }}
+        run: |
+          python3 main.py --scan-only
