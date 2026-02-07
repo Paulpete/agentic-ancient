@@ -1,0 +1,44 @@
+name: Omega Prime Eternal Loop
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'  # Every 30 minutes
+  workflow_dispatch:
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install requests solana web3
+      
+      - name: Scan Assets
+        env:
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+          MORALIS_API_KEY: ${{ secrets.MORALIS_LEGACY_KEY }}
+        run: |
+          python crypto-agent-omega/agent/intelligence/omega_scanner.py
+      
+      - name: Hunt Airdrops
+        env:
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+          MORALIS_API_KEY: ${{ secrets.MORALIS_LEGACY_KEY }}
+        run: |
+          python crypto-agent-omega/agent/strategies/airdrop_hunter.py
+      
+      - name: Report Status
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: 7792603242
+        run: |
+          curl -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "text=🤖 Omega Prime cycle complete - $(date)"
