@@ -1,0 +1,27 @@
+
+name: Cosmic Mutation
+on:
+  schedule:
+    - cron: '0 */2 * * *'
+jobs:
+  execute-skills:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Unzip skills
+        run: |
+          unzip 'cryptohelix (1).skill' -d skills
+          unzip 'helix-nexus (1).skill' -d skills
+          unzip 'ralph-analytics (1).skill' -d skills
+      - name: Run CryptoHelix Skill
+        run: python3 skills/cryptohelix/scripts/chain_intelligence.py portfolio 0x1234567890123456789012345678901234567890 solana
+      - name: Run Helix-Nexus Skill
+        run: python3 skills/helix-nexus/scripts/orchestrate.py status
+      - name: Run Ralph-Analytics Skill
+        run: python3 skills/ralph-analytics/scripts/generate_dashboard.py dummy_session
