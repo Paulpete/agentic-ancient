@@ -1,4 +1,4 @@
-"use client";
+'use client';
 
 import React, { useState } from 'react';
 import { IBundler, Bundler } from '@biconomy/bundler';
@@ -7,7 +7,7 @@ import { ethers } from 'ethers';
 import { ChainId } from "@biconomy/core-types";
 
 export default function Home() {
-  const [txHash, setTxHash] = useState(null);
+  const [txHash, setTxHash] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSupertransaction = async () => {
@@ -19,12 +19,12 @@ export default function Home() {
 
       const biconomySmartAccountConfig = {
         signer: signer,
-        chainId: ChainId.BASE_SEPOLIA_TESTNET, // Base Sepolia
+        chainId: ChainId.BASE_GOERLI_TESTNET, // Base Goerli
         bundlerUrl: "https://bundler.biconomy.io/api/v2/84531/nJPK7B32G.7f948574-142f-456a-af40-53d35667b369", // From lib/ethereum/biconomy.ts
         biconomyPaymasterApiKey: "BICONOMY_API_KEY", // From lib/ethereum/biconomy.ts
       };
 
-      const biconomySmartAccount = await new BiconomySmartAccountV2(biconomySmartAccountConfig).init();
+      const biconomySmartAccount = await BiconomySmartAccountV2.create(biconomySmartAccountConfig);
 
       const tx = {
         to: '0x322Af0da66D00be980C7aa006377FCaaEee34252',
@@ -36,7 +36,7 @@ export default function Home() {
       const userOpResponse = await biconomySmartAccount.sendUserOp(userOp);
       const { transactionHash } = await userOpResponse.waitForTxHash();
       
-      setTxHash(transactionHash);
+      setTxHash(transactionHash ?? null);
     } catch (error) {
       console.error(error);
     }
