@@ -1,0 +1,63 @@
+{
+  "omega": {
+    "enabled": true,
+    "execution_interval": 1800,
+    "target_wallet": "4eJZV...",
+    "strategies": ["airdrop_hunter", "asset_scanner", "relayer"]
+  },
+  "allowlist": {
+    "sources": [
+      "airdropalert.com/rss",
+      "academy.binance.com/rss",
+      "cryptorank.io/feed"
+    ],
+    "protocols": [
+      "Jupiter",
+      "Drift",
+      "MarginFi",
+      "Kamino",
+      "Tensor",
+      "Raydium",
+      "Orca"
+    ]
+  },
+  "chains": {
+    "solana": {
+      "rpc": "https://mainnet.helius-rpc.com",
+      "cluster": "mainnet-beta"
+    },
+    "ethereum": {
+      "rpc": "https://eth-mainnet.g.alchemy.com/v2",
+      "chainId": 1
+    },
+    "base": {
+      "rpc": "https://mainnet.base.org",
+      "chainId": 8453
+    }
+  },
+  "integrations": {
+    "helius": {
+      "enabled": true,
+      "features": ["das", "priority_fees", "webhooks"]
+    },
+    "biconomy": {
+      "enabled": true,
+      "gasless": true
+    },
+    "moralis": {
+      "enabled": true,
+      "cross_chain": true
+    },
+    "telegram": {
+      "enabled": true,
+      "notifications": true
+    }
+  },
+  "ai": {
+    "ollama": {
+      "enabled": true,
+      "models": ["qwen2.5-coder:7b", "deepseek-coder:6.7b"],
+      "base_url": "http://localhost:11434"
+    }
+  }
+}
