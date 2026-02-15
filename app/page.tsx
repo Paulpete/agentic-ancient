@@ -9,6 +9,14 @@ import { ChainId } from "@biconomy/core-types";
 export default function Home() {
   const [txHash, setTxHash] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [ralphStatus, setRalphStatus] = useState<'stopped' | 'running'>('stopped');
+
+  const handleRalphLoop = async () => {
+    const action = ralphStatus === 'stopped' ? 'POST' : 'DELETE'
+    const res = await fetch('/api/ralph', { method: action })
+    const data = await res.json()
+    setRalphStatus(data.status === 'initiated' || data.status === 'already_running' ? 'running' : 'stopped')
+  }
 
   const handleSupertransaction = async () => {
     setLoading(true);
@@ -54,6 +62,26 @@ export default function Home() {
         <p style={{ color: '#0f0', marginBottom: '1rem' }}>// System Status: Nominal</p>
         <p style={{ color: '#0f0', marginBottom: '1rem' }}>// Awaiting your command, Guardian.</p>
         
+        <div style={{ marginTop: '2rem', border: '1px solid #333', padding: '1.5rem' }}>
+          <h2 style={{ color: '#0f0', borderBottom: '1px solid #333', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Ralph Loop Control</h2>
+          <p style={{ color: '#888', marginBottom: '1.5rem' }}>Autonomous agent execution system.</p>
+          <button 
+            onClick={handleRalphLoop}
+            style={{ 
+              backgroundColor: ralphStatus === 'running' ? '#f00' : '#0f0', 
+              color: '#000', 
+              border: 'none', 
+              padding: '10px 20px', 
+              cursor: 'pointer',
+              fontSize: '1rem',
+              marginBottom: '2rem'
+            }}
+          >
+            {ralphStatus === 'running' ? 'Stop Ralph Loop' : 'Initiate Ralph Loop'}
+          </button>
+          <div style={{ color: '#888', marginBottom: '1rem' }}>Status: {ralphStatus}</div>
+        </div>
+
         <div style={{ marginTop: '2rem', border: '1px solid #333', padding: '1.5rem' }}>
           <h2 style={{ color: '#0f0', borderBottom: '1px solid #333', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Supertransaction Console</h2>
           <p style={{ color: '#888', marginBottom: '1.5rem' }}>Initiate gasless, multi-chain workflows.</p>
