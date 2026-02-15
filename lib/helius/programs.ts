@@ -11,9 +11,19 @@ export async function getAllPrograms() {
     { filters: [{ dataSize: 36 }] }
   )
   
-  return programs.map(p => ({
-    address: p.pubkey.toString(),
-    owner: p.account.owner.toString(),
-    lamports: p.account.lamports
-  }))
+  const upgradable = []
+  
+  for (const p of programs) {
+    const info = await connection.getAccountInfo(p.pubkey)
+    if (info?.owner.toString() === 'BPFLoaderUpgradeab1e11111111111111111111111') {
+      upgradable.push({
+        address: p.pubkey.toString(),
+        owner: info.owner.toString(),
+        lamports: info.lamports,
+        executable: info.executable
+      })
+    }
+  }
+  
+  return upgradable
 }

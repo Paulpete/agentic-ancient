@@ -111,7 +111,14 @@ export default function Home() {
           <div style={{ color: '#888', marginTop: '1rem' }}>Status: {ralphStatus}</div>
           {programs.length > 0 && (
             <div style={{ marginTop: '1rem', color: '#0f0' }}>
-              <p>Programs Found: {programs.length}</p>
+              <p>Upgradable Programs: {programs.length}</p>
+              <div style={{ maxHeight: '200px', overflow: 'auto', marginTop: '0.5rem', fontSize: '0.8rem' }}>
+                {programs.slice(0, 10).map((p: any, i: number) => (
+                  <div key={i} style={{ padding: '0.25rem', borderBottom: '1px solid #222' }}>
+                    {p.address}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </div>
