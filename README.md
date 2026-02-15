@@ -1,5 +1,15 @@
 # Agentic Ancient Agent
 
+## Quick Start
+```bash
+npm install
+npm run dev
+```
+Open http://localhost:3000
+
+## Full Setup
+See [SETUP.md](./SETUP.md) for complete instructions.
+
 ## Introduction
 This repository contains the "EMPIRE INFINITY MATRIX WEBAPP," a project managed by an AI agent. The goal is to create a web interface for interacting with blockchain technologies, specifically for initiating Biconomy Supertransactions.
 
