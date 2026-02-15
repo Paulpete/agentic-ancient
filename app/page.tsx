@@ -12,6 +12,8 @@ export default function Home() {
   const [ralphStatus, setRalphStatus] = useState<'stopped' | 'running'>('stopped');
   const [programs, setPrograms] = useState<any[]>([]);
   const [scanning, setScanning] = useState(false);
+  const [executing, setExecuting] = useState(false);
+  const [execResult, setExecResult] = useState<string>('');
 
   const handleRalphLoop = async () => {
     const action = ralphStatus === 'stopped' ? 'POST' : 'DELETE'
@@ -30,6 +32,26 @@ export default function Home() {
       console.error(error)
     }
     setScanning(false)
+  }
+
+  const handleExecuteProgram = async () => {
+    setExecuting(true)
+    try {
+      const res = await fetch('/api/execute', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          programId: programs[0]?.programId,
+          instruction: 'initialize',
+          args: []
+        })
+      })
+      const data = await res.json()
+      setExecResult(data.result || data.error)
+    } catch (error: any) {
+      setExecResult(error.message)
+    }
+    setExecuting(false)
   }
 
   const handleSupertransaction = async () => {
@@ -112,10 +134,31 @@ export default function Home() {
           {programs.length > 0 && (
             <div style={{ marginTop: '1rem', color: '#0f0' }}>
               <p>Upgradable Programs: {programs.length}</p>
+              <button 
+                onClick={handleExecuteProgram}
+                disabled={executing}
+                style={{ 
+                  backgroundColor: '#0f0', 
+                  color: '#000', 
+                  border: 'none', 
+                  padding: '5px 10px', 
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  marginTop: '0.5rem',
+                  opacity: executing ? 0.5 : 1
+                }}
+              >
+                {executing ? 'Executing...' : 'Execute First Program'}
+              </button>
+              {execResult && (
+                <div style={{ marginTop: '0.5rem', fontSize: '0.7rem', color: '#888' }}>
+                  {execResult}
+                </div>
+              )}
               <div style={{ maxHeight: '200px', overflow: 'auto', marginTop: '0.5rem', fontSize: '0.8rem' }}>
                 {programs.slice(0, 10).map((p: any, i: number) => (
                   <div key={i} style={{ padding: '0.25rem', borderBottom: '1px solid #222' }}>
-                    {p.address}
+                    {p.programId}
                   </div>
                 ))}
               </div>
