@@ -10,12 +10,26 @@ export default function Home() {
   const [txHash, setTxHash] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [ralphStatus, setRalphStatus] = useState<'stopped' | 'running'>('stopped');
+  const [programs, setPrograms] = useState<any[]>([]);
+  const [scanning, setScanning] = useState(false);
 
   const handleRalphLoop = async () => {
     const action = ralphStatus === 'stopped' ? 'POST' : 'DELETE'
     const res = await fetch('/api/ralph', { method: action })
     const data = await res.json()
     setRalphStatus(data.status === 'initiated' || data.status === 'already_running' ? 'running' : 'stopped')
+  }
+
+  const handleScanPrograms = async () => {
+    setScanning(true)
+    try {
+      const res = await fetch('/api/programs')
+      const data = await res.json()
+      setPrograms(data.programs || [])
+    } catch (error) {
+      console.error(error)
+    }
+    setScanning(false)
   }
 
   const handleSupertransaction = async () => {
@@ -74,12 +88,32 @@ export default function Home() {
               padding: '10px 20px', 
               cursor: 'pointer',
               fontSize: '1rem',
-              marginBottom: '2rem'
+              marginRight: '1rem'
             }}
           >
             {ralphStatus === 'running' ? 'Stop Ralph Loop' : 'Initiate Ralph Loop'}
           </button>
-          <div style={{ color: '#888', marginBottom: '1rem' }}>Status: {ralphStatus}</div>
+          <button 
+            onClick={handleScanPrograms}
+            disabled={scanning}
+            style={{ 
+              backgroundColor: '#0f0', 
+              color: '#000', 
+              border: 'none', 
+              padding: '10px 20px', 
+              cursor: 'pointer',
+              fontSize: '1rem',
+              opacity: scanning ? 0.5 : 1
+            }}
+          >
+            {scanning ? 'Scanning...' : 'Scan Programs'}
+          </button>
+          <div style={{ color: '#888', marginTop: '1rem' }}>Status: {ralphStatus}</div>
+          {programs.length > 0 && (
+            <div style={{ marginTop: '1rem', color: '#0f0' }}>
+              <p>Programs Found: {programs.length}</p>
+            </div>
+          )}
         </div>
 
         <div style={{ marginTop: '2rem', border: '1px solid #333', padding: '1.5rem' }}>
