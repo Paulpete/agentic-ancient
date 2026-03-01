@@ -26,6 +26,6 @@ export function getUpgradablePrograms() {
     
     return programs
   } catch (error: any) {
-    throw new Error(`Solana CLI error: ${error.message}`)
+    throw new Error(`Failed to get upgradable programs: ${error.message}`)
   }
 }
