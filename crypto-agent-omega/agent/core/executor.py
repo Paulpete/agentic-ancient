@@ -3,7 +3,7 @@
 Strategy execution engine with risk management.
 """
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from decimal import Decimal
 
 logger = logging.getLogger(__name__)
