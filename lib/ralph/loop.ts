@@ -3,6 +3,7 @@ import { getRalphAgent } from './agent'
 export class RalphLoop {
   private running = false
   private interval: number
+  private iteration = 0
   
   constructor(intervalMs: number = 60000) {
     this.interval = intervalMs
@@ -17,10 +18,14 @@ export class RalphLoop {
     const agent = await getRalphAgent()
     
     while (this.running) {
+      this.iteration++
       try {
         await agent.executeLoop()
       } catch (error) {
-        console.error('❌ Loop iteration failed:', error)
+        console.error(
+          `❌ Loop iteration #${this.iteration} failed during agent.executeLoop():`,
+          error
+        )
       }
       
       await new Promise(resolve => setTimeout(resolve, this.interval))
