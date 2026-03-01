@@ -1,1 +1,12 @@
 node_modules
+.env.local
+.env
+solana-wallet.json
+ralph-loop.log
+ollama.log
+deployment_manifest.json
+.next
+dist
+build
+*.tsbuildinfo
+.DS_Store
