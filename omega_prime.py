@@ -23,8 +23,14 @@ class OmegaPrime:
     def load_allowlist(self) -> Dict:
         """Load allowlist configuration"""
         import json
-        with open('configs/allowlists.json', 'r') as f:
-            return json.load(f)
+        config_path = os.path.join(os.path.dirname(__file__), 'configs', 'allowlists.json')
+        try:
+            with open(config_path, 'r') as f:
+                return json.load(f)
+        except FileNotFoundError as e:
+            raise FileNotFoundError(
+                f"Configuration file {config_path} not found. Please ensure it exists."
+            ) from e
     
     async def execute_cycle(self):
         """Execute one Omega cycle"""
