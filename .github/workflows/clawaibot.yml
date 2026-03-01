@@ -1,0 +1,51 @@
+name: ClawAIBot Autonomous Coding
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'  # Every 4 hours
+  workflow_dispatch:
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Install Ollama
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &
+          sleep 5
+      
+      - name: Pull AI Models
+        run: |
+          ollama pull qwen2.5-coder:7b
+          ollama pull deepseek-coder:6.7b
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install requests
+      
+      - name: Generate Code Improvements
+        run: |
+          python3 crypto-agent-omega/agent/intelligence/clawaibot.py
+      
+      - name: Commit Improvements
+        run: |
+          git config user.name "ClawAIBot"
+          git config user.email "bot@omega.ai"
+          git add -A
+          git diff --staged --quiet || git commit -m "🤖 ClawAIBot: Autonomous code generation"
+      
+      - name: Notify Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: 7792603242
+        run: |
+          curl -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "text=🦙 ClawAIBot cycle complete - Free AI coding active"

@@ -1,0 +1,8 @@
+{
+    "solana": {
+        "rpc_endpoint": "${SOLANA_RPC_ENDPOINT}"
+    },
+    "ethereum": {
+        "rpc_endpoint": "${ETH_RPC_ENDPOINT}"
+    }
+}

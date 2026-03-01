@@ -1,0 +1,48 @@
+{
+  "core_files": [
+    "analyze_repo.py",
+    "main.py",
+    "omega_prime.py"
+  ],
+  "workflows": [
+    ".github/workflows/autofix.yml",
+    ".github/workflows/cosmic-mutation.yml",
+    ".github/workflows/clawaibot.yml",
+    ".github/workflows/omega-eternal.yml",
+    ".github/workflows/daily-cosmic-scan.yml"
+  ],
+  "agents": [
+    "crypto-agent-omega/agent/__init__.py",
+    "crypto-agent-omega/agent/strategies/airdrop_hunter.py",
+    "crypto-agent-omega/agent/strategies/__init__.py",
+    "crypto-agent-omega/agent/strategies/base_strategy.py",
+    "crypto-agent-omega/agent/blockchain/__init__.py",
+    "crypto-agent-omega/agent/core/agent.py",
+    "crypto-agent-omega/agent/core/__init__.py",
+    "crypto-agent-omega/agent/core/executor.py",
+    "crypto-agent-omega/agent/core/state_manager.py",
+    "crypto-agent-omega/agent/core/orchestrator.py",
+    "crypto-agent-omega/agent/intelligence/genetic_algorithm.py",
+    "crypto-agent-omega/agent/intelligence/clawaibot.py",
+    "crypto-agent-omega/agent/intelligence/__init__.py",
+    "crypto-agent-omega/agent/intelligence/omega_scanner.py",
+    "crypto-agent-omega/agent/integrations/telegram.py",
+    "crypto-agent-omega/agent/integrations/__init__.py",
+    "crypto-agent-omega/agent/integrations/database.py"
+  ],
+  "integrations": [
+    "lib/ralph/agent.ts",
+    "lib/ralph/strategies/liquidity-sniffer.ts",
+    "lib/ralph/strategies/yield-harvester.ts",
+    "lib/ralph/strategies/belief-rewrite.ts",
+    "lib/ralph/strategies/zk-farmer.ts",
+    "lib/ralph/strategies/signal-seeker.ts",
+    "lib/moralis/client.ts",
+    "lib/ethereum/biconomy.ts"
+  ],
+  "configs": [
+    "package.json",
+    "tsconfig.json",
+    "omega_config.json"
+  ]
+}
