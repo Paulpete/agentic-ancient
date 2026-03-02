@@ -1,0 +1,135 @@
+name: 🚀 CryptoNaut — Deployer Agent
+
+on:
+  workflow_dispatch:
+    inputs:
+      task:
+        description: 'Deployment task'
+        required: true
+        type: choice
+        options:
+          - generate_biconomy_relay
+          - plan_anchor_deployment
+          - query_biconomy_mcp
+          - full_status
+      contract_address:
+        description: 'Contract address (for relay generation)'
+        required: false
+        default: ''
+      function_name:
+        description: 'Function name (for relay generation)'
+        required: false
+        default: 'execute'
+      chain_id:
+        description: 'Chain ID (8453=Base, 137=Polygon, 1=Mainnet)'
+        required: false
+        default: '8453'
+      program_name:
+        description: 'Anchor program name (for deployment planning)'
+        required: false
+        default: 'empire_matrix'
+      query:
+        description: 'Biconomy docs query'
+        required: false
+        default: 'gasless transaction setup'
+
+jobs:
+  deploy:
+    name: CryptoNaut Deployer
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Ollama
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          ollama serve &
+          sleep 8
+          ollama pull qwen2.5-coder:7b || true
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: pip install requests --quiet
+
+      # ── Task dispatch ──────────────────────────────────────────────────────
+
+      - name: Generate Biconomy Relay
+        if: github.event.inputs.task == 'generate_biconomy_relay'
+        env:
+          OLLAMA_BASE_URL: http://localhost:11434
+          OLLAMA_MODEL: qwen2.5-coder:7b
+        run: |
+          echo "🔗 Generating Biconomy gasless relay..."
+          python3 crypto-agent-omega/agent/cryptonaut/cryptonaut_agent.py relay \
+            --contract "${{ github.event.inputs.contract_address || '0x0000000000000000000000000000000000000000' }}" \
+            --function "${{ github.event.inputs.function_name }}" \
+            --chain-id "${{ github.event.inputs.chain_id }}" \
+            > generated/biconomy_relay_$(date +%s).ts
+          echo "✅ Relay code generated"
+
+      - name: Plan Anchor Deployment
+        if: github.event.inputs.task == 'plan_anchor_deployment'
+        env:
+          OLLAMA_BASE_URL: http://localhost:11434
+          OLLAMA_MODEL: qwen2.5-coder:7b
+        run: |
+          mkdir -p generated
+          echo "⚓ Planning Anchor deployment..."
+          python3 crypto-agent-omega/agent/cryptonaut/cryptonaut_agent.py deploy \
+            --program "${{ github.event.inputs.program_name }}" \
+            --instructions initialize mint_nft stake claim_rewards \
+            | tee generated/deployment_plan_$(date +%s).json
+
+      - name: Query Biconomy MCP
+        if: github.event.inputs.task == 'query_biconomy_mcp'
+        env:
+          OLLAMA_BASE_URL: http://localhost:11434
+        run: |
+          echo "📚 Querying Biconomy MCP docs..."
+          python3 crypto-agent-omega/agent/cryptonaut/cryptonaut_agent.py biconomy \
+            "${{ github.event.inputs.query }}"
+
+      - name: Full Status
+        if: github.event.inputs.task == 'full_status'
+        env:
+          OLLAMA_BASE_URL: http://localhost:11434
+          OLLAMA_MODEL: qwen2.5-coder:7b
+          AGENT_WALLET_ADDRESS: ${{ secrets.AGENT_WALLET_ADDRESS }}
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+        run: |
+          python3 crypto-agent-omega/agent/cryptonaut/cryptonaut_agent.py status
+
+      # ── Commit generated files ─────────────────────────────────────────────
+      - name: Commit Generated Files
+        run: |
+          git config user.name "CryptoNaut"
+          git config user.email "cryptonaut@empire.ai"
+          git add -A
+          git diff --staged --quiet || git commit -m "🚀 CryptoNaut Deployer: ${{ github.event.inputs.task }} $(date '+%Y-%m-%d %H:%M')"
+          git push origin main || echo "Nothing to push"
+
+      - name: Notify Telegram
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || '7792603242' }}
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "parse_mode=Markdown" \
+            -d "text=🚀 *CryptoNaut Deployer Complete*
+
+Task: \`${{ github.event.inputs.task }}\`
+Status: ${{ job.status }}
+Time: $(date '+%Y-%m-%d %H:%M UTC')
+
+_Empire builds._" || true

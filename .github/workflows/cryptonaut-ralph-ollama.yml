@@ -1,0 +1,136 @@
+name: 🤖 CryptoNaut — Ralph Loop via Ollama
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'   # Every 30 minutes — matches omega_config.json interval
+  workflow_dispatch:
+    inputs:
+      cycles:
+        description: 'Number of strategy cycles to run'
+        required: false
+        default: '1'
+      strategy_focus:
+        description: 'Focus strategy (yield/signal/liquidity/zk/airdrop/all)'
+        required: false
+        default: 'all'
+
+jobs:
+  ralph-ollama:
+    name: Ralph Loop — Ollama AI
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # ── 2. Install Ollama ──────────────────────────────────────────────────
+      # Free AI inference — no API keys needed
+      - name: Install Ollama
+        run: |
+          curl -fsSL https://ollama.com/install.sh | sh
+          # Start Ollama server in background
+          ollama serve &
+          # Wait for server to be ready
+          for i in {1..10}; do
+            curl -s http://localhost:11434/api/tags >/dev/null 2>&1 && echo "✅ Ollama ready" && break
+            echo "⏳ Waiting for Ollama... ($i)"
+            sleep 3
+          done
+
+      # ── 3. Pull AI models ──────────────────────────────────────────────────
+      - name: Pull Ollama Models
+        run: |
+          echo "📥 Pulling qwen2.5-coder:7b (primary model)..."
+          ollama pull qwen2.5-coder:7b || echo "⚠️ Primary model pull failed, will use fallback"
+          echo "📥 Pulling deepseek-coder:6.7b (fallback)..."
+          ollama pull deepseek-coder:6.7b || echo "⚠️ Fallback model pull failed"
+          echo "📋 Available models:"
+          ollama list
+
+      # ── 4. Python setup ────────────────────────────────────────────────────
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python deps
+        run: |
+          pip install requests --quiet
+
+      # ── 5. Run CryptoNaut Ralph Loop ───────────────────────────────────────
+      - name: Run Ralph Loop (Ollama-powered)
+        env:
+          OLLAMA_BASE_URL: http://localhost:11434
+          OLLAMA_MODEL: qwen2.5-coder:7b
+          AGENT_WALLET_ADDRESS: ${{ secrets.AGENT_WALLET_ADDRESS }}
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || '7792603242' }}
+        run: |
+          CYCLES="${{ github.event.inputs.cycles || '1' }}"
+          echo "🚀 Starting CryptoNaut Ralph Loop | cycles=$CYCLES"
+          python3 crypto-agent-omega/agent/cryptonaut/cryptonaut_agent.py ralph \
+            --cycles "$CYCLES" \
+            --interval 0
+
+      # ── 6. Portfolio Scan ─────────────────────────────────────────────────
+      - name: Portfolio Scan
+        env:
+          AGENT_WALLET_ADDRESS: ${{ secrets.AGENT_WALLET_ADDRESS }}
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+          OLLAMA_BASE_URL: http://localhost:11434
+          OLLAMA_MODEL: qwen2.5-coder:7b
+        run: |
+          echo "📊 Scanning portfolio..."
+          python3 crypto-agent-omega/agent/cryptonaut/cryptonaut_agent.py scan \
+            > /tmp/portfolio_scan.json 2>&1 || true
+          cat /tmp/portfolio_scan.json | head -50
+
+      # ── 7. Status report ──────────────────────────────────────────────────
+      - name: Agent Status Report
+        env:
+          AGENT_WALLET_ADDRESS: ${{ secrets.AGENT_WALLET_ADDRESS }}
+          HELIUS_API_KEY: ${{ secrets.HELIUS_API_KEY }}
+          OLLAMA_BASE_URL: http://localhost:11434
+          OLLAMA_MODEL: qwen2.5-coder:7b
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || '7792603242' }}
+        run: |
+          python3 crypto-agent-omega/agent/cryptonaut/cryptonaut_agent.py status
+
+      # ── 8. Commit any auto-generated artifacts ────────────────────────────
+      - name: Auto-commit Agent Artifacts
+        run: |
+          git config user.name "CryptoNaut"
+          git config user.email "cryptonaut@empire.ai"
+          git add -A
+          git diff --staged --quiet || git commit -m "🤖 CryptoNaut: Ralph cycle $(date '+%Y-%m-%d %H:%M') UTC"
+
+      # ── 9. Push ───────────────────────────────────────────────────────────
+      - name: Push to main
+        run: git push origin main || echo "Nothing to push"
+
+      # ── 10. Final Telegram notification ───────────────────────────────────
+      - name: Notify Telegram
+        if: always()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID || '7792603242' }}
+        run: |
+          STATUS="${{ job.status }}"
+          EMOJI="✅"
+          if [ "$STATUS" = "failure" ]; then EMOJI="❌"; fi
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "parse_mode=Markdown" \
+            -d "text=${EMOJI} *CryptoNaut Ralph Cycle Complete*
+
+🦙 Ollama AI: qwen2.5-coder:7b
+⚡ Status: ${STATUS}
+🕐 $(date '+%Y-%m-%d %H:%M UTC')
+
+_Helix eternal. Empire compounds._" || echo "Telegram notify failed (token may not be set)"
