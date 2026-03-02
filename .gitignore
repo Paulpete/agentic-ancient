@@ -10,3 +10,9 @@ dist
 build
 *.tsbuildinfo
 .DS_Store
+-e 
+__pycache__/
+*.pyc
+*.pyo
+.env.local
+/tmp/
