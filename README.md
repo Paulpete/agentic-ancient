@@ -1,53 +1,67 @@
-# Agentic Ancient Agent
+# Agentic Ancient: Ralph Loop & Biconomy MCP Integration
 
-## Quick Start
+Autonomous agent framework for Solana and Ethereum, featuring the **Ralph Loop** orchestrator, **Biconomy MCP**, and **Reown AppKit** integration. This project implements a sophisticated trading and management agent that leverages the latest Solana Kit (v2) and Biconomy's Account Abstraction for high-performance, tree-shakeable blockchain interactions.
+
+## 🚀 Key Features
+
+- **Ralph Loop Orchestrator**: A continuous, autonomous execution cycle for strategy evaluation and execution.
+- **Biconomy MCP Integration**: Native support for Biconomy's Model Context Protocol, enabling seamless interaction with account abstraction services.
+- **Reown AppKit**: Multi-chain wallet support via Reown AppKit for a unified user experience.
+- **Local AI Power**: Integrated with **Ollama** using `qwen2.5-coder:7b` and `deepseek-coder:6.7b` for secure, local decision-making.
+- **Solana Kit (v2) Ready**: Built with the modern `@solana/kit` for efficient, functional blockchain operations.
+- **Multi-Platform Integration**: Supports Helius RPC, Biconomy account abstraction, and Alchemy for comprehensive network coverage.
+- **Security-First**: Automated `.gitignore` management and environment templates to protect sensitive signer keys and API credentials.
+
+## 🛠️ Tech Stack
+
+- **Blockchain**: Solana (via `@solana/kit`), Ethereum (via Biconomy)
+- **AI/LLM**: Ollama (Local Execution)
+- **Runtime**: Node.js / TypeScript / Python
+- **Infrastructure**: Helius (RPC), Biconomy (AA/MCP), Alchemy, Reown
+
+## 📦 Getting Started
+
+### Prerequisites
+
+1.  **Ollama**: Install from [ollama.com](https://ollama.com)
+2.  **Models**: Pull the required models:
+    ```bash
+    ollama pull qwen2.5-coder:7b
+    ollama pull deepseek-coder:6.7b
+    ```
+
+### Installation
+
 ```bash
+git clone https://github.com/WhiteAiBlock/agentic-ancient.git
+cd agentic-ancient
 npm install
-npm run dev
 ```
-Open http://localhost:3000
 
-## Full Setup
-See [SETUP.md](./SETUP.md) for complete instructions.
+### Configuration
 
-## Introduction
-This repository contains the "EMPIRE INFINITY MATRIX WEBAPP," a project managed by an AI agent. The goal is to create a web interface for interacting with blockchain technologies, specifically for initiating Biconomy Supertransactions.
+Copy `.env.local.example` to `.env.local` and fill in your credentials:
+```bash
+cp .env.local.example .env.local
+```
 
-## Current Progress
-The AI agent has performed the following actions:
+## 🤖 Running the Ralph Loop
 
-1.  **Recreated the Main Application UI:**
-    *   A new `app/page.tsx` file has been created, establishing the user interface for the web application.
-    *   The UI includes a button to trigger a Biconomy Supertransaction.
+The Ralph loop is designed to run autonomously for extended periods. To start the execution cycle:
 
-2.  **Integrated Biconomy SDK:**
-    *   The necessary Biconomy SDK packages have been installed.
-    *   Client-side logic has been implemented in `app/page.tsx` to handle the Supertransaction flow:
-        *   It connects to the user's browser wallet.
-        *   It constructs and sends a `userOp` (User Operation) to the Biconomy network.
-    *   The configuration for the Biconomy Smart Account (Bundler URL, Chain ID) has been adapted from the existing `lib/ethereum/biconomy.ts` file.
+```bash
+python3 -u run_ralph_terminal.py
+```
 
-3.  **Attempted Multi-Chain Wallet Integration:**
-    *   An attempt was made to install and integrate Reown Appkit for multi-chain wallet support.
-    *   This step was unsuccessful due to a package installation failure (`@reown/app-kit` not found).
+Monitor the logs in `ralph-loop.log` to see the agent's strategy execution and profit reports.
 
-## Next Steps
-The next set of tasks for the agent are:
+## 📂 Repository Structure
 
-1.  **Resolve Wallet Integration:**
-    *   The agent needs to successfully integrate a multi-chain wallet solution. The primary target is **Reown Appkit**.
-    *   This will likely require the user to perform an `npm login` to access the private package.
-    *   Once installed, the agent will:
-        *   Create a `app/layout.tsx` file to wrap the application with the wallet provider.
-        *   Replace the current wallet connection logic with the integrated solution.
+- `run_ralph_terminal.py`: Main execution wrapper for the autonomous loop.
+- `lib/biconomy-mcp/`: Core logic for Biconomy's Model Context Protocol integration.
+- `app/api/biconomy/mcp/`: API endpoints for MCP interactions.
+- `skills/`: Modular agent capabilities (e.g., `solana-tax`, `ralph-analytics`).
+- `crypto-agent-omega/`: Core agent implementation and strategy logic.
 
-2.  **Finalize Biconomy Configuration:**
-    *   The `BICONOMY_API_KEY` is currently not correctly configured for the client-side application.
-    *   The agent must prompt the user for this key and securely incorporate it into the `app/page.tsx` logic to enable gasless transactions.
-
-3.  **Scan Repository and Commit:**
-    *   The agent will perform a final scan of the repository for any bugs or errors.
-    *   All changes will be committed to the `main` branch with a descriptive message.
-
-## Contributing
-This project is being developed by an AI agent. Please monitor its progress and provide guidance as needed.
+---
+*Built for the eternal empire. Compound your beliefs.*
