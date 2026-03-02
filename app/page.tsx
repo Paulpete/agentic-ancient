@@ -258,6 +258,119 @@ export default function Home() {
         {reportResult?.error&&<div style={{marginTop:'1rem',color:'#ff4141',fontSize:'0.8rem'}}>❌ {reportResult.error}</div>}
       </div>
 
+      {/* ── ClawPump Token Launchpad ── */}
+      <ClawPumpPanel />
+
     </main>
+  );
+}
+
+// ─── ClawPump Panel Component ──────────────────────────────────────────────
+
+function ClawPumpPanel() {
+  const [cpText, setCpText]       = React.useState('');
+  const [cpLoading, setCpLoading] = React.useState(false);
+  const [cpResult, setCpResult]   = React.useState<any>(null);
+  const [cpPending, setCpPending] = React.useState<any>(null);
+  const [cpTab, setCpTab]         = React.useState('launch');
+
+  const runAgent = async (text: string) => {
+    if (!text.trim()) return;
+    setCpLoading(true); setCpResult(null); setCpPending(null);
+    try {
+      const r = await fetch('/api/clawpump/agent', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ text }),
+      });
+      const d = await r.json();
+      if (d.data?.pendingLaunch) setCpPending(d.data.pendingLaunch);
+      setCpResult(d);
+    } catch(e: any) { setCpResult({ success: false, message: e.message }); }
+    setCpLoading(false);
+  };
+
+  const confirmLaunch = async () => {
+    if (!cpPending) return;
+    setCpLoading(true);
+    try {
+      const r = await fetch('/api/clawpump/agent', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ text: '', confirm: true, pendingLaunch: cpPending }),
+      });
+      const d = await r.json();
+      setCpResult(d); setCpPending(null);
+    } catch(e: any) { setCpResult({ success: false, message: e.message }); }
+    setCpLoading(false);
+  };
+
+  const quickPrompts: [string, string, string][] = [
+    ['earnings', '💰 Earnings',   'Check my ClawPump earnings'],
+    ['history',  '📋 History',    'Show my launch history'],
+    ['domains',  '🔍 Domains',    'Search domains for empire'],
+    ['quote',    '💱 Swap Quote', 'Get swap quote 1 SOL to USDC'],
+  ];
+
+  return (
+    <div style={{...S.panelFull, marginTop: '1.5rem'}}>
+      <div style={{display:'flex',alignItems:'center',gap:'1rem',marginBottom:'1rem',borderBottom:'1px solid #1a1a1a',paddingBottom:'0.75rem'}}>
+        <h2 style={{...S.ph2, margin:0, borderBottom:'none'}}>🐾 ClawPump Token Launchpad</h2>
+        <span style={{fontSize:'0.75rem',color:'#444'}}>pump.fun launches · 65% trading fees · Gasless FREE</span>
+      </div>
+
+      <div style={{display:'flex',gap:'0.5rem',marginBottom:'1rem',flexWrap:'wrap'}}>
+        <button onClick={()=>{setCpTab('launch');setCpResult(null);setCpPending(null);setCpText('');}}
+          style={{...S.btnGhost, color: cpTab==='launch'?'#00ff41':'#444'}}>🚀 Launch Token</button>
+        {quickPrompts.map(([tab, label, prompt])=>(
+          <button key={tab} onClick={()=>{setCpTab(tab); runAgent(prompt);}}
+            style={{...S.btnGhost, color: cpTab===tab?'#00ff41':'#444'}}>{label}</button>
+        ))}
+      </div>
+
+      {cpTab === 'launch' && (
+        <div style={{marginBottom:'1rem'}}>
+          <div style={{color:'#444',fontSize:'0.75rem',marginBottom:'6px'}}>
+            Describe your token — name, symbol, description, and image URL
+          </div>
+          <div style={{display:'flex',gap:'0.5rem'}}>
+            <input
+              style={{...S.input, flex:1}}
+              placeholder='"Launch EmpireAI, symbol EMP, about autonomous DeFi agents, image https://..."'
+              value={cpText}
+              onChange={e=>setCpText(e.target.value)}
+              onKeyDown={e=>{ if(e.key==='Enter') runAgent(cpText); }}
+            />
+            <button onClick={()=>runAgent(cpText)} disabled={cpLoading||!cpText.trim()}
+              style={{...S.btn, opacity: cpLoading||!cpText.trim() ? 0.4 : 1}}>
+              {cpLoading?'⏳':'▶'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {cpLoading && <div style={{color:'#444',fontSize:'0.8rem',padding:'0.75rem 0'}}>⏳ Connecting to ClawPump...</div>}
+
+      {cpResult && !cpLoading && (
+        <div style={{background:'#0a0a0a',padding:'1rem',border:`1px solid ${cpResult.success?'#1a3a1a':'#2a1a1a'}`,fontSize:'0.8rem'}}>
+          <pre style={{color: cpResult.success?'#00ff41':'#ff8800', whiteSpace:'pre-wrap', margin:0, fontFamily:'monospace'}}>
+            {cpResult.message}
+          </pre>
+          {cpPending && (
+            <div style={{marginTop:'1rem',borderTop:'1px solid #1a3a1a',paddingTop:'1rem',display:'flex',gap:'0.75rem'}}>
+              <button onClick={confirmLaunch} disabled={cpLoading}
+                style={{...S.btn, opacity: cpLoading?0.5:1}}>✅ Confirm Launch (FREE)</button>
+              <button onClick={()=>{setCpPending(null);setCpResult(null);}} style={S.btnRed}>Cancel</button>
+            </div>
+          )}
+          {cpResult.success && cpResult.data?.pumpUrl && (
+            <div style={{marginTop:'0.75rem',display:'flex',gap:'1rem'}}>
+              <a href={cpResult.data.pumpUrl} target="_blank" rel="noreferrer"
+                style={{color:'#00ff41',fontSize:'0.75rem'}}>🔗 pump.fun ↗</a>
+              <a href={cpResult.data.explorerUrl} target="_blank" rel="noreferrer"
+                style={{color:'#444',fontSize:'0.75rem'}}>🔍 Solscan ↗</a>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
