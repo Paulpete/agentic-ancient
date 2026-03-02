@@ -46,6 +46,7 @@ export async function POST(request: Request) {
     const result = await handleDeployerRequest('POST', body)
     return NextResponse.json(result.data, { status: result.status })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    const _emsg = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: _emsg }, { status: 500 })
   }
 }

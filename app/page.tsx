@@ -92,19 +92,21 @@ export default function Home() {
   const handleSupertransaction = async () => {
     setLoading(true);
     try {
-      const {ethers} = await import('ethers');
-      const {BiconomySmartAccountV2} = await import('@biconomy/account');
-      const {ChainId} = await import('@biconomy/core-types');
-      // @ts-ignore
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const bsa = await BiconomySmartAccountV2.create({ signer, chainId: ChainId.BASE_GOERLI_TESTNET, bundlerUrl:'https://bundler.biconomy.io/api/v2/84531/nJPK7B32G.7f948574-142f-456a-af40-53d35667b369', biconomyPaymasterApiKey: process.env.NEXT_PUBLIC_BICONOMY_API_KEY??'' });
-      const tx = { to:'0x322Af0da66D00be980C7aa006377FCaaEee34252', data:'0x', value:ethers.parseEther('0.001') };
-      const userOp = await bsa.buildUserOp([tx]);
-      const resp = await bsa.sendUserOp(userOp);
-      const {transactionHash} = await resp.waitForTxHash();
-      setTxHash(transactionHash??null);
-    } catch(e){console.error(e);}
+      // FIX: Removed hardcoded Biconomy bundler API key (was nJPK7B32G... in source).
+      // FIX: Removed deprecated @biconomy/core-types + Base Goerli testnet (sunset).
+      // FIX: Removed hardcoded destination address 0x322Af0da66D00be980C7aa006377FCaaEee34252.
+      // Now routes through server-side /api/biconomy/relay — secrets stay server-only.
+      const recipient = process.env.NEXT_PUBLIC_TX_RECIPIENT;
+      if (!recipient) { console.error('NEXT_PUBLIC_TX_RECIPIENT not set'); setLoading(false); return; }
+      const res = await fetch('/api/biconomy/relay', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ transactions: [{ to: recipient, data: '0x' }], chain: 'base' }),
+      });
+      const data = await res.json();
+      if (data.txHash) setTxHash(data.txHash);
+      else console.error('Relay error:', data.error);
+    } catch(e){ console.error(e); }
     setLoading(false);
   };
 

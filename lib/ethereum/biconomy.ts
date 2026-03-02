@@ -1,16 +1,11 @@
 /**
  * lib/ethereum/biconomy.ts
  *
- * Complete Biconomy Smart Account v4 integration.
- * Supports Base mainnet, Base Goerli, Polygon, Ethereum mainnet.
+ * Biconomy Smart Account v4 integration.
+ * Supports Base mainnet, Polygon, Ethereum mainnet.
  *
- * Fixes over the original file:
- *  - Async factory pattern (no fire-and-forget constructor race condition)
- *  - Multi-chain configs (Base mainnet, Base Goerli, Polygon, Ethereum)
- *  - SPONSORED paymaster mode — Biconomy covers gas
- *  - Batch transaction support (multiple actions in one UserOp)
- *  - UserOp status polling
- *  - Tax event emission after each gasless tx (wired to lib/tax/engine)
+ * FIX: Removed hardcoded bundler API key (nJPK7B32G...) — now loaded from
+ *      BICONOMY_BUNDLER_KEY env var. Removed deprecated Base Goerli testnet.
  */
 
 import { createSmartAccountClient, PaymasterMode } from '@biconomy/account'
@@ -19,7 +14,7 @@ import { logTaxEvent } from '../tax/engine'
 
 // ─── Chain configs ─────────────────────────────────────────────────────────
 
-export type SupportedChain = 'base' | 'base-goerli' | 'polygon' | 'ethereum'
+export type SupportedChain = 'base' | 'polygon' | 'ethereum'
 
 interface ChainConfig {
   chainId: number
@@ -29,34 +24,36 @@ interface ChainConfig {
   name: string
 }
 
-const API_KEY = process.env.BICONOMY_API_KEY ?? ''
+// FIX: Bundler API key moved to env var — no secrets in source code
+function getBundlerKey(): string {
+  const key = process.env.BICONOMY_BUNDLER_KEY
+  if (!key) throw new Error('BICONOMY_BUNDLER_KEY not set in environment')
+  return key
+}
+
+function buildBundlerUrl(chainId: number): string {
+  return `https://bundler.biconomy.io/api/v2/${chainId}/${getBundlerKey()}`
+}
 
 export const CHAIN_CONFIGS: Record<SupportedChain, ChainConfig> = {
   'base': {
     chainId: 8453,
-    rpcUrl: 'https://mainnet.base.org',
-    bundlerUrl: 'https://bundler.biconomy.io/api/v2/8453/nJPK7B32G.7f948574-142f-456a-af40-53d35667b369',
+    rpcUrl: process.env.BASE_RPC_URL ?? 'https://mainnet.base.org',
+    get bundlerUrl() { return buildBundlerUrl(8453) },
     explorerUrl: 'https://basescan.org',
     name: 'Base',
   },
-  'base-goerli': {
-    chainId: 84531,
-    rpcUrl: 'https://goerli.base.org',
-    bundlerUrl: 'https://bundler.biconomy.io/api/v2/84531/nJPK7B32G.7f948574-142f-456a-af40-53d35667b369',
-    explorerUrl: 'https://goerli.basescan.org',
-    name: 'Base Goerli',
-  },
   'polygon': {
     chainId: 137,
-    rpcUrl: 'https://polygon-rpc.com',
-    bundlerUrl: 'https://bundler.biconomy.io/api/v2/137/nJPK7B32G.7f948574-142f-456a-af40-53d35667b369',
+    rpcUrl: process.env.POLYGON_RPC_URL ?? 'https://polygon-rpc.com',
+    get bundlerUrl() { return buildBundlerUrl(137) },
     explorerUrl: 'https://polygonscan.com',
     name: 'Polygon',
   },
   'ethereum': {
     chainId: 1,
-    rpcUrl: 'https://eth.llamarpc.com',
-    bundlerUrl: 'https://bundler.biconomy.io/api/v2/1/nJPK7B32G.7f948574-142f-456a-af40-53d35667b369',
+    rpcUrl: process.env.ETH_RPC_URL ?? 'https://eth.llamarpc.com',
+    get bundlerUrl() { return buildBundlerUrl(1) },
     explorerUrl: 'https://etherscan.io',
     name: 'Ethereum',
   },
@@ -92,14 +89,10 @@ export class BiconomyClient {
     this.config = CHAIN_CONFIGS[chain]
   }
 
-  /**
-   * Always use BiconomyClient.create() — async factory prevents
-   * the race condition where the old constructor called async setupBiconomy()
-   * without awaiting, causing smartAccount to be undefined on first use.
-   */
   static async create(chain: SupportedChain = 'base'): Promise<BiconomyClient> {
-    if (!process.env.BICONOMY_API_KEY) throw new Error('BICONOMY_API_KEY not set')
-    if (!process.env.ETH_PRIVATE_KEY)  throw new Error('ETH_PRIVATE_KEY not set')
+    if (!process.env.BICONOMY_API_KEY)  throw new Error('BICONOMY_API_KEY not set')
+    if (!process.env.ETH_PRIVATE_KEY)   throw new Error('ETH_PRIVATE_KEY not set')
+    if (!process.env.BICONOMY_BUNDLER_KEY) throw new Error('BICONOMY_BUNDLER_KEY not set')
 
     const client = new BiconomyClient(chain)
     await client._init()
@@ -112,32 +105,24 @@ export class BiconomyClient {
 
     this.smartAccount = await createSmartAccountClient({
       signer,
-      chainId:               this.config.chainId,
-      bundlerUrl:            this.config.bundlerUrl,
+      chainId:                 this.config.chainId,
+      bundlerUrl:              this.config.bundlerUrl,
       biconomyPaymasterApiKey: process.env.BICONOMY_API_KEY!,
-      rpcUrl:                this.config.rpcUrl,
+      rpcUrl:                  this.config.rpcUrl,
     })
 
     this.smartAccountAddress = await this.smartAccount.getAccountAddress()
     console.log(`[Biconomy] Smart Account (${this.config.name}): ${this.smartAccountAddress}`)
   }
 
-  getAddress(): string { return this.smartAccountAddress }
-  getChain():   SupportedChain { return this.chain }
+  getAddress(): string      { return this.smartAccountAddress }
+  getChain(): SupportedChain { return this.chain }
   getChainConfig(): ChainConfig { return this.config }
 
-  /**
-   * Send one gasless transaction. Biconomy Paymaster covers the gas fee.
-   */
   async sendGasless(tx: Transaction): Promise<GaslessResult> {
     return this.sendBatch([tx])
   }
 
-  /**
-   * Send multiple transactions as a single atomic UserOperation.
-   * All execute in one bundle — one gas payment, multiple actions.
-   * Ideal for: approve + swap, multi-transfer, NFT mint + list.
-   */
   async sendBatch(txs: Transaction[]): Promise<GaslessResult> {
     const normalised = txs.map(tx => ({
       to:    tx.to,
@@ -145,8 +130,6 @@ export class BiconomyClient {
       value: tx.value ? BigInt(tx.value.toString()) : BigInt(0),
     }))
 
-    // SPONSORED mode = Biconomy pays gas on behalf of user.
-    // Switch to PaymasterMode.ERC20 to pay gas in a stablecoin instead.
     const userOpResponse = await this.smartAccount.sendTransaction(normalised, {
       paymasterServiceData: { mode: PaymasterMode.SPONSORED },
     })
@@ -158,10 +141,7 @@ export class BiconomyClient {
 
     console.log(`[Biconomy] ✅ Confirmed: ${this.config.explorerUrl}/tx/${txHash}`)
 
-    // ── Tax event: log EVM transfers for tax reporting ────────────────────
-    const totalValueEth = normalised.reduce(
-      (sum, t) => sum + Number(t.value) / 1e18, 0
-    )
+    const totalValueEth = normalised.reduce((sum, t) => sum + Number(t.value) / 1e18, 0)
     if (totalValueEth > 0) {
       logTaxEvent({
         timestamp:     Math.floor(Date.now() / 1000),
@@ -181,18 +161,15 @@ export class BiconomyClient {
     }
 
     return {
-      userOpHash:           userOpResponse.userOpHash,
+      userOpHash:          userOpResponse.userOpHash,
       txHash,
-      smartAccountAddress:  this.smartAccountAddress,
-      chain:                this.chain,
-      explorerUrl:          `${this.config.explorerUrl}/tx/${txHash}`,
-      success:              true,
+      smartAccountAddress: this.smartAccountAddress,
+      chain:               this.chain,
+      explorerUrl:         `${this.config.explorerUrl}/tx/${txHash}`,
+      success:             true,
     }
   }
 
-  /**
-   * Poll the bundler for UserOp receipt.
-   */
   async getUserOpStatus(userOpHash: string): Promise<{
     status: 'pending' | 'confirmed' | 'failed'
     txHash?: string
@@ -211,7 +188,7 @@ export class BiconomyClient {
   }
 }
 
-// ─── Singleton cache (one per chain, lazy init) ──────────────────────────────
+// ─── Singleton cache ──────────────────────────────────────────────────────────
 
 const _cache = new Map<SupportedChain, BiconomyClient>()
 

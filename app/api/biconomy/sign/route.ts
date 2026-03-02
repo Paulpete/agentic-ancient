@@ -68,10 +68,11 @@ export async function POST(request: Request) {
       bundlerUrl: CHAIN_CONFIGS[chain].bundlerUrl,
     })
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[/api/biconomy/sign] Error:', error)
+    const msg = error instanceof Error ? error.message : String(error)
     return NextResponse.json(
-      { error: error.message ?? 'Signing failed' },
+      { error: msg },
       { status: 500 }
     )
   }

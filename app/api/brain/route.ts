@@ -54,7 +54,8 @@ export async function GET() {
       checkpoint_age: Math.floor((Date.now() / 1000) - (fs.statSync(CHECKPOINT).mtimeMs / 1000)) + 's ago',
     })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    const _emsg = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: _emsg }, { status: 500 })
   }
 }
 
@@ -84,6 +85,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ status: 'queued', entry: JSON.parse(line) })
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
+    const _emsg = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: _emsg }, { status: 500 })
   }
 }

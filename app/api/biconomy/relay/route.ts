@@ -1,23 +1,27 @@
 /**
  * POST /api/biconomy/relay
- *
  * Server-side gasless transaction relay.
- * The Ralph agent (and any server-side code) calls this to execute
- * EVM transactions via the Biconomy Smart Account without the user
- * needing to sign or pay gas.
  *
- * Body:
- *   transactions: { to, data?, value? }[]   — one or more txs to batch
- *   chain?:       'base' | 'base-goerli' | 'polygon' | 'ethereum'  (default: 'base')
- *
- * Returns:
- *   { userOpHash, txHash, smartAccountAddress, chain, explorerUrl, success }
+ * FIX: Added RELAY_API_KEY auth guard — previously any caller could drain the
+ *      Biconomy paymaster balance. Set RELAY_API_KEY in .env.local.
+ * FIX: Removed deprecated base-goerli chain support.
  */
 
 import { NextResponse } from 'next/server'
 import { getBiconomyClient, SupportedChain, CHAIN_CONFIGS } from '@/lib/ethereum/biconomy'
 
+// Simple API key guard for server→server relay calls
+function isAuthorized(request: Request): boolean {
+  const required = process.env.RELAY_API_KEY
+  if (!required) return true // dev mode
+  return request.headers.get('x-api-key') === required
+}
+
 export async function POST(request: Request) {
+  if (!isAuthorized(request)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   try {
     const body = await request.json()
     const { transactions, chain = 'base' } = body as {
@@ -25,7 +29,6 @@ export async function POST(request: Request) {
       chain?: SupportedChain
     }
 
-    // ── Validation ─────────────────────────────────────────────────────────
     if (!transactions || !Array.isArray(transactions) || transactions.length === 0) {
       return NextResponse.json(
         { error: 'transactions array is required and must not be empty' },
@@ -33,11 +36,17 @@ export async function POST(request: Request) {
       )
     }
 
-    if (!CHAIN_CONFIGS[chain]) {
+    // FIX: validate chain against updated CHAIN_CONFIGS (base-goerli removed)
+    if (!CHAIN_CONFIGS[chain as SupportedChain]) {
       return NextResponse.json(
         { error: `Unsupported chain "${chain}". Supported: ${Object.keys(CHAIN_CONFIGS).join(', ')}` },
         { status: 400 }
       )
+    }
+
+    // Limit batch size to prevent abuse
+    if (transactions.length > 10) {
+      return NextResponse.json({ error: 'Max 10 transactions per batch' }, { status: 400 })
     }
 
     for (const tx of transactions) {
@@ -49,48 +58,31 @@ export async function POST(request: Request) {
       }
     }
 
-    // ── Relay via Biconomy Smart Account ────────────────────────────────────
     console.log(`[/api/biconomy/relay] Relaying ${transactions.length} tx(s) on ${chain}`)
 
-    const client = await getBiconomyClient(chain)
+    const client = await getBiconomyClient(chain as SupportedChain)
     const result = await client.sendBatch(transactions)
 
     return NextResponse.json(result)
 
-  } catch (error: any) {
-    console.error('[/api/biconomy/relay] Error:', error)
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    console.error('[/api/biconomy/relay] Error:', message)
 
-    // Surface friendly errors for common misconfigs
-    if (error.message?.includes('BICONOMY_API_KEY')) {
-      return NextResponse.json(
-        { error: 'Biconomy not configured. Set BICONOMY_API_KEY in .env.local' },
-        { status: 503 }
-      )
+    if (message.includes('BICONOMY_API_KEY')) {
+      return NextResponse.json({ error: 'Biconomy not configured. Set BICONOMY_API_KEY' }, { status: 503 })
     }
-    if (error.message?.includes('ETH_PRIVATE_KEY')) {
-      return NextResponse.json(
-        { error: 'ETH signer not configured. Set ETH_PRIVATE_KEY in .env.local' },
-        { status: 503 }
-      )
+    if (message.includes('ETH_PRIVATE_KEY')) {
+      return NextResponse.json({ error: 'ETH signer not configured. Set ETH_PRIVATE_KEY' }, { status: 503 })
     }
-    if (error.message?.includes('AA21') || error.message?.includes('insufficient funds')) {
-      return NextResponse.json(
-        { error: 'Paymaster balance too low. Top up at dashboard.biconomy.io' },
-        { status: 402 }
-      )
+    if (message.includes('AA21') || message.includes('insufficient funds')) {
+      return NextResponse.json({ error: 'Paymaster balance too low' }, { status: 402 })
     }
 
-    return NextResponse.json(
-      { error: error.message ?? 'Unknown relay error' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: message ?? 'Unknown relay error' }, { status: 500 })
   }
 }
 
-/**
- * GET /api/biconomy/relay
- * Returns Smart Account address and paymaster balance info per chain.
- */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
@@ -100,8 +92,8 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: `Unsupported chain: ${chain}` }, { status: 400 })
     }
 
-    const client    = await getBiconomyClient(chain)
-    const config    = client.getChainConfig()
+    const client = await getBiconomyClient(chain)
+    const config = client.getChainConfig()
 
     return NextResponse.json({
       smartAccountAddress: client.getAddress(),
@@ -111,7 +103,8 @@ export async function GET(request: Request) {
       explorerUrl: `${config.explorerUrl}/address/${client.getAddress()}`,
       status:      'ready',
     })
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
