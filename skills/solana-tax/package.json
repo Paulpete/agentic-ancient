@@ -1,0 +1,21 @@
+{
+  "name": "clawai-solana-tax-kit",
+  "version": "1.0.0",
+  "description": "ClawAi Solana Tax Engine — @solana/kit fetcher",
+  "main": "scripts/kit_fetcher.js",
+  "scripts": {
+    "install-kit": "npm install @solana/kit @solana-program/system @solana/compat",
+    "test-signatures": "node scripts/kit_fetcher.js signatures 11111111111111111111111111111111 10 https://api.mainnet-beta.solana.com",
+    "test-engine": "python3 scripts/tax_engine.py --help"
+  },
+  "dependencies": {
+    "@solana/kit": "^2.0.0",
+    "@solana-program/system": "^0.7.0",
+    "@solana/compat": "^2.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "keywords": ["solana", "tax", "crypto-tax", "web3", "defi"],
+  "license": "MIT"
+}

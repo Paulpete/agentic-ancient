@@ -6,14 +6,17 @@ import { ZKFarmer } from './strategies/zk-farmer'
 import { BeliefRewrite } from './strategies/belief-rewrite'
 import { database } from '../database/client'
 import { sendTelegram } from '../telegram'
+import { strategyResultToTaxEvent, getSessionSummary } from '../tax/engine'
 
 export class RalphAgent {
   private strategies: Map<string, any>
   private connection: Connection
   private beliefScores: Map<string, number>
+  private walletAddress: string
   
   constructor() {
     this.connection = new Connection(process.env.NEXT_PUBLIC_RPC_ENDPOINT!)
+    this.walletAddress = process.env.AGENT_WALLET_ADDRESS ?? ''
     this.strategies = new Map()
     this.beliefScores = new Map()
     
@@ -52,6 +55,21 @@ export class RalphAgent {
         if (Math.random() < beliefScore || name === 'belief') {
           const result = await strategy.execute()
           results.push({ strategy: name, ...result })
+          
+          // ── Tax engine: log taxable event from this execution ──────────────
+          // strategyResultToTaxEvent converts the strategy result to a
+          // TaxEvent and appends it to the in-memory log (read by /api/tax).
+          // Returns null if result has no profit/loss (no taxable event).
+          if (result.success && result.profitLoss !== undefined) {
+            const taxEvent = strategyResultToTaxEvent(
+              { strategy: name, ...result },
+              this.walletAddress
+            )
+            if (taxEvent) {
+              console.log(`💰 [TAX] ${taxEvent.taxCategory} | $${taxEvent.gainLossUsd.toFixed(2)} | ${taxEvent.asset}`)
+            }
+          }
+          // ── End tax wiring ─────────────────────────────────────────────────
           
           // Log to database
           await this.logExecution(name, result)
@@ -125,12 +143,19 @@ export class RalphAgent {
     const successful = results.filter(r => r.success).length
     const totalProfit = results.reduce((sum, r) => sum + (r.profitLoss || 0), 0)
     
+    // ── Tax summary from this cycle ────────────────────────────────────────
+    const taxSummary = getSessionSummary()
+    const taxLine = taxSummary.eventCount > 0
+      ? `\n🧾 Tax Events: ${taxSummary.eventCount} | Net: ${taxSummary.totalGainLoss >= 0 ? '+' : ''}$${taxSummary.totalGainLoss.toFixed(2)}`
+      : ''
+    // ── End tax summary ────────────────────────────────────────────────────
+    
     const message = `
 🧬 *Ralph Agent Report*
 
 ⚡ Strategies Executed: ${results.length}
 ✅ Successful: ${successful}
-💰 Total P/L: ${totalProfit.toFixed(4)} SOL
+💰 Total P/L: ${totalProfit.toFixed(4)} SOL${taxLine}
 
 _Helix eternal. Empire compounds._
     `.trim()

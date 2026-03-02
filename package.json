@@ -1,7 +1,7 @@
 {
-  "name": "biconomy-integration",
-  "version": "0.1.0",
-  "private": true, "type": "commonjs",
+  "name": "agentic-ancient",
+  "version": "0.2.0",
+  "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -17,15 +17,21 @@
     "@biconomy/core-types": "^3.1.4",
     "@biconomy/modules": "4.1.1",
     "@biconomy/paymaster": "^4.1.1",
+    "@reown/appkit": "^1.7.3",
+    "@reown/appkit-adapter-wagmi": "^1.7.3",
+    "@reown/appkit-adapter-solana": "^1.7.3",
+    "@solana/wallet-adapter-wallets": "^0.19.32",
     "@solana/web3.js": "^1.98.4",
+    "@tanstack/react-query": "^5.80.7",
     "bs58": "^6.0.0",
     "dotenv": "^17.2.4",
     "ethers": "^6.16.0",
     "helius-sdk": "^2.1.0",
-    "next": "16.1.6",
+    "next": "14.2.29",
     "react": "^18",
     "react-dom": "^18",
-    "viem": "^2.45.1"
+    "viem": "^2.45.1",
+    "wagmi": "^2.15.4"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -33,7 +39,7 @@
     "@types/react-dom": "^18",
     "autoprefixer": "^10.0.1",
     "eslint": "^8",
-    "eslint-config-next": "14.1.4",
+    "eslint-config-next": "14.2.29",
     "postcss": "^8",
     "tailwindcss": "^3.3.0",
     "ts-node": "^10.9.2",
