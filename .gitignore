@@ -16,3 +16,14 @@ __pycache__/
 *.pyo
 .env.local
 /tmp/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Tax report outputs
+/tmp/clawai_tax_reports/
+
+# Local env
+.env.local
