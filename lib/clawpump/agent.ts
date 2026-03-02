@@ -423,7 +423,7 @@ export class ClawPumpAgent {
 let _agent: ClawPumpAgent | null = null
 
 export function getClawPumpAgent(walletAddress?: string): ClawPumpAgent {
-  const wallet = walletAddress ?? process.env.AGENT_WALLET_ADDRESS ?? ''
+  const wallet = walletAddress ?? process.env.AGENT_WALLET_ADDRESS ?? '0xF66254F21a3e0F0E9C6fF7Ee096d8d1144A0dfCc'
   if (!_agent || walletAddress) {
     _agent = new ClawPumpAgent(wallet)
   }

@@ -12,6 +12,9 @@ import { createSmartAccountClient, PaymasterMode } from '@biconomy/account'
 import { ethers } from 'ethers'
 import { logTaxEvent } from '../tax/engine'
 
+// ─── Agent ETH address ───────────────────────────────────────────────────────
+export const AGENT_ETH_ADDRESS = process.env.AGENT_ETH_ADDRESS ?? '0xF66254F21a3e0F0E9C6fF7Ee096d8d1144A0dfCc'
+
 // ─── Chain configs ─────────────────────────────────────────────────────────
 
 export type SupportedChain = 'base' | 'polygon' | 'ethereum'

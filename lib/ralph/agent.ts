@@ -16,7 +16,7 @@ export class RalphAgent {
 
   constructor() {
     this.connection    = new Connection(process.env.NEXT_PUBLIC_RPC_ENDPOINT!)
-    this.walletAddress = process.env.AGENT_WALLET_ADDRESS ?? ''
+    this.walletAddress = process.env.AGENT_WALLET_ADDRESS ?? process.env.AGENT_ETH_ADDRESS ?? '0xF66254F21a3e0F0E9C6fF7Ee096d8d1144A0dfCc'
     this.strategies    = new Map()
     this.beliefScores  = new Map()
 

@@ -9,7 +9,10 @@
  */
 
 import { ethers } from 'ethers'
-import { SupportedChain, CHAIN_CONFIGS } from './biconomy'
+import { SupportedChain, CHAIN_CONFIGS, AGENT_ETH_ADDRESS } from './biconomy'
+
+// Re-export for convenience
+export { AGENT_ETH_ADDRESS }
 
 let _signerCache: Map<SupportedChain, ethers.Wallet> | null = null
 
